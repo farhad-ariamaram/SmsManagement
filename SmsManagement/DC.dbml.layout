@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ordesignerObjectsDiagram dslVersion="1.0.0.0" absoluteBounds="0, 0, 11, 8.5" name="DC">
+  <DataContextMoniker Name="/DCDataContext" />
+  <nestedChildShapes>
+    <classShape Id="3e66354a-e701-4627-bef9-923e4c769621" absoluteBounds="0.75, 0.75, 2, 1.3862939453125">
+      <DataClassMoniker Name="/DCDataContext/Tbl_Link" />
+      <nestedChildShapes>
+        <elementListCompartment Id="eb748226-3ce4-4330-a75d-1faf947a4f82" absoluteBounds="0.765, 1.21, 1.9700000000000002, 0.8262939453125" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
+      </nestedChildShapes>
+    </classShape>
+    <classShape Id="c6847e4c-4087-4266-8641-f5d069498a1b" absoluteBounds="3.75, 0.75, 2, 1.5785953776041666">
+      <DataClassMoniker Name="/DCDataContext/Tbl_SmsSent" />
+      <nestedChildShapes>
+        <elementListCompartment Id="0ec147b7-8c1c-4324-a346-c4e465a61888" absoluteBounds="3.765, 1.21, 1.9700000000000002, 1.0185953776041665" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
+      </nestedChildShapes>
+    </classShape>
+    <classShape Id="17c7b875-e425-4b87-9512-869cfa820d78" absoluteBounds="0.75, 3.75, 2, 1.5785953776041666">
+      <DataClassMoniker Name="/DCDataContext/Tbl_SmsReceived" />
+      <nestedChildShapes>
+        <elementListCompartment Id="806831c0-3953-452b-9378-df23cb24f2ec" absoluteBounds="0.765, 4.21, 1.9700000000000002, 1.0185953776041665" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
+      </nestedChildShapes>
+    </classShape>
+  </nestedChildShapes>
+</ordesignerObjectsDiagram>
