@@ -24,9 +24,12 @@ namespace SmsManagement
                 Console.WriteLine(item);
             }
 
-            //Receive port name from user
-            Console.WriteLine("Enter Port Name: ");
-            portNo = Console.ReadLine();
+            //Get port name from "port.txt" file
+            var lines = File.ReadAllLines("port.txt");
+            for (var i = 0; i < lines.Length; i += 1)
+            {
+                portNo = lines[i];
+            }
 
             //Config GSM modem
             serialPort1.PortName = portNo;
@@ -59,6 +62,7 @@ namespace SmsManagement
                 catch (Exception)
                 {
                     LogErrors("Error On Openning Port" + Environment.NewLine);
+                    ResetApp();
                 }
 
 
@@ -71,6 +75,7 @@ namespace SmsManagement
                 catch (Exception)
                 {
                     LogErrors("Error On Read Received Messages" + Environment.NewLine);
+                    ResetApp();
                 }
 
 
@@ -89,6 +94,7 @@ namespace SmsManagement
                 catch (Exception)
                 {
                     LogErrors("Error On Read Received Messages" + Environment.NewLine);
+                    ResetApp();
                 }
 
 
@@ -101,6 +107,7 @@ namespace SmsManagement
                 catch (Exception)
                 {
                     LogErrors("Error On Split Read Message To Array" + Environment.NewLine);
+                    ResetApp();
                 }
 
 
@@ -123,6 +130,7 @@ namespace SmsManagement
                         catch (Exception)
                         {
                             LogErrors("Error On Split Message Line To Array" + Environment.NewLine);
+                            ResetApp();
                         }
 
                         //Analyzing received message body and get 10 first chars of it to a string named "receivedSms"
@@ -134,6 +142,7 @@ namespace SmsManagement
                         catch (Exception)
                         {
                             LogErrors("Error On Get 10 First Chars Of Message Line" + Environment.NewLine);
+                            ResetApp();
                         }
 
                         //Insert received message to "Tbl_SmsReceived" of database
@@ -156,6 +165,7 @@ namespace SmsManagement
                         catch (Exception)
                         {
                             LogErrors("Error On Insert received message to Tbl_SmsReceived" + Environment.NewLine);
+                            ResetApp();
                         }
 
 
@@ -175,6 +185,7 @@ namespace SmsManagement
                             catch (Exception)
                             {
                                 LogErrors("Error On Generating a Hash Key From Sender Phone" + Environment.NewLine);
+                                ResetApp();
                             }
 
 
@@ -198,6 +209,7 @@ namespace SmsManagement
                             catch (Exception)
                             {
                                 LogErrors("Error On Create a row to Tbl_Link of database for registering user" + Environment.NewLine);
+                                ResetApp();
                             }
 
 
@@ -210,6 +222,7 @@ namespace SmsManagement
                             catch (Exception)
                             {
                                 LogErrors("Error On Display Registered User In Console" + Environment.NewLine);
+                                ResetApp();
                             }
 
 
@@ -237,6 +250,7 @@ namespace SmsManagement
                             catch (Exception)
                             {
                                 LogErrors("Error On Send Link To Uesr" + Environment.NewLine);
+                                ResetApp();
                             }
 
 
@@ -253,6 +267,7 @@ namespace SmsManagement
                             catch (Exception)
                             {
                                 LogErrors("Error On Add Sent Sms To Database" + Environment.NewLine);
+                                ResetApp();
                             }
 
 
@@ -265,6 +280,7 @@ namespace SmsManagement
                             catch (Exception)
                             {
                                 LogErrors("Error On Change Read Language To Normal Text" + Environment.NewLine);
+                                ResetApp();
                             }
 
 
@@ -283,6 +299,7 @@ namespace SmsManagement
                         catch (Exception)
                         {
                             LogErrors("Error On Delete All Read Messages" + Environment.NewLine);
+                            ResetApp();
                         }
 
                     }
@@ -297,6 +314,9 @@ namespace SmsManagement
 
                 //Display a message in console to inform that an error has occured
                 Console.WriteLine("Unknow Error");
+
+                //Restart app
+                ResetApp();
             }
             //In final of executaton try or catch the current port will be closed
             finally
@@ -312,6 +332,7 @@ namespace SmsManagement
                 catch (Exception)
                 {
                     LogErrors("Error On Close Port After For Loop End" + Environment.NewLine);
+                    ResetApp();
                 }
             }
         }
@@ -391,6 +412,21 @@ namespace SmsManagement
                 s = sr.ReadLine();
             }
             return s;
+        }
+
+        //Reset App
+        public static void ResetApp()
+        {
+            if (serialPort1.IsOpen)
+            {
+                serialPort1.Close();
+            }
+
+            Console.WriteLine("App has been restarted!");
+
+            System.Diagnostics.Process.Start("SmsManagement.exe");
+
+            Environment.Exit(0);
         }
     }
 }
