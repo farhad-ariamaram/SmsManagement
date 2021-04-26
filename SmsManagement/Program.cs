@@ -246,7 +246,7 @@ namespace SmsManagement
                                 Tbl_SmsSent tbl_SmsSent = new Tbl_SmsSent();
                                 tbl_SmsSent.Date = DateTime.Now;
                                 tbl_SmsSent.Phone = MsgLine[2].Replace("\"", string.Empty);
-                                //tbl_SmsSent.Message = (shortedLink[1] + ":" + shortedLink[2]).Replace("\"", string.Empty).Replace("}", string.Empty);
+                                tbl_SmsSent.Message = (shortedLink[1] + ":" + shortedLink[2]).Replace("\"", string.Empty).Replace("}", string.Empty);
                                 db.Tbl_SmsSents.InsertOnSubmit(tbl_SmsSent);
                                 db.SubmitChanges();
                             }
