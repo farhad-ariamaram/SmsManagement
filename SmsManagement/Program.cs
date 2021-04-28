@@ -35,12 +35,6 @@ namespace SmsManagement
             serialPort1.PortName = portNo;
             serialPort1.BaudRate = 9600;
 
-            //Check if port was open, close that
-            if (serialPort1.IsOpen)
-            {
-                serialPort1.Close();
-            }
-
             //Put program to listen mode
             while (true)
             {
@@ -57,7 +51,10 @@ namespace SmsManagement
                 //Open Port
                 try
                 {
-                    serialPort1.Open();
+                    if (!serialPort1.IsOpen)
+                    {
+                        serialPort1.Open();
+                    }
                 }
                 catch (Exception)
                 {
@@ -74,7 +71,7 @@ namespace SmsManagement
                 }
                 catch (Exception)
                 {
-                    LogErrors("Error On Read Received Messages" + Environment.NewLine);
+                    LogErrors("Error On Change read language to normal text" + Environment.NewLine);
                     ResetApp();
                 }
 
@@ -110,54 +107,29 @@ namespace SmsManagement
                     ResetApp();
                 }
 
-
                 //Loop for analyze each line of received messages
                 for (int i = 0; i < receivedMessages.Length - 1; i++)
                 {
-                    //Get each received messasge one by one, each received messasge start with "+CMGL:" 
-                    if (receivedMessages[i].StartsWith("+CMGL:"))
+                    if (receivedMessages[i].StartsWith("+CMGL"))
                     {
-                        //Eech received message include 2 lines
-                        //First line include message information like phone number, date and etc. that separeted with "," => access with receivedMessages[i] => a sample of first line without parenthesis (+CMGL: 1,"REC UNREAD","+989345677654","","21/04/10,14:42:54+18")
-                        //And second line include message body => access with receivedMessages[i+1]
-
-                        //Convert first line to an string array by "," sign, MsgLine[2] means sender phone number
-                        string[] MsgLine = null;
-                        try
+                        string[] message = receivedMessages[i].Split(',');
+                        string phone = message[2].Replace("\"", string.Empty);
+                        string msg = receivedMessages[i + 1];
+                        StringBuilder sb = new StringBuilder();
+                        for (int j = 0; j < msg.Length; j += 4)
                         {
-                            MsgLine = receivedMessages[i].Split(',');
+                            sb.AppendFormat("\\u{0:x4}", msg.Substring(j, 4));
                         }
-                        catch (Exception)
-                        {
-                            LogErrors("Error On Split Message Line To Array" + Environment.NewLine);
-                            ResetApp();
-                        }
-
-                        //Analyzing received message body and get 10 first chars of it to a string named "receivedSms"
-                        string receivedSms = null;
-                        try
-                        {
-                            receivedSms = (receivedMessages[i + 1].Length > 10) ? receivedMessages[i + 1].Substring(0, 10) : receivedMessages[i + 1];
-                        }
-                        catch (Exception)
-                        {
-                            LogErrors("Error On Get 10 First Chars Of Message Line" + Environment.NewLine);
-                            ResetApp();
-                        }
+                        string Msg = System.Text.RegularExpressions.Regex.Unescape(sb.ToString()).Replace("\"", string.Empty);
 
                         //Insert received message to "Tbl_SmsReceived" of database
                         try
                         {
                             Tbl_SmsReceived smsReceived = new Tbl_SmsReceived()
                             {
-                                //Remove double quotation from sender phone number
-                                Phone = MsgLine[2].Replace("\"", string.Empty),
-
-                                //Use current date and time for message date and time field in database
+                                Phone = phone,
                                 Date = DateTime.Now,
-
-                                //Store receiveed message body in database 
-                                Message = receivedSms
+                                Message = Msg
                             };
                             db.Tbl_SmsReceiveds.InsertOnSubmit(smsReceived);
                             db.SubmitChanges();
@@ -168,18 +140,17 @@ namespace SmsManagement
                             ResetApp();
                         }
 
-
                         //Check if received message body equals to 1 (persian or english) 
-                        if (receivedSms.Equals("1") || receivedSms.Equals("06F1"))
+                        if (msg.Equals("1") || msg.Equals("۱"))
                         {
                             //Generating a hash key from sender phone number and current date and time for user registeration ID
                             string HashId = null;
                             try
                             {
-                                HashId = CreateMD5(MsgLine[2].Replace("\"", string.Empty) + DateTime.Now.Ticks);
+                                HashId = CreateMD5(phone + DateTime.Now.Ticks);
                                 while (db.Tbl_Links.Any(s => s.Id == HashId))
                                 {
-                                    HashId = CreateMD5(MsgLine[2].Replace("\"", string.Empty) + DateTime.Now.Ticks);
+                                    HashId = CreateMD5(phone + DateTime.Now.Ticks);
                                 }
                             }
                             catch (Exception)
@@ -194,13 +165,8 @@ namespace SmsManagement
                             {
                                 Tbl_Link link = new Tbl_Link()
                                 {
-                                    //User generated hash for registeration ID
                                     Id = HashId,
-
-                                    //use sender phone number as registeration phone number
-                                    Phone = MsgLine[2].Replace("\"", string.Empty),
-
-                                    //Make link deadline to 1 day
+                                    Phone = phone,
                                     ExpireDate = DateTime.Now.AddDays(1)
                                 };
                                 db.Tbl_Links.InsertOnSubmit(link);
@@ -216,7 +182,7 @@ namespace SmsManagement
                             //Display Registered user in console
                             try
                             {
-                                Console.WriteLine(MsgLine[2] + "    " + MsgLine[4] + MsgLine[5]);
+                                Console.WriteLine(phone + "    " + DateTime.Now);
                                 Console.WriteLine("New user submitted!");
                             }
                             catch (Exception)
@@ -225,26 +191,47 @@ namespace SmsManagement
                                 ResetApp();
                             }
 
-
-                            //Send short link to current uesr
-                            string[] shortedLink = null;
+                            //Generate link of user registeration
+                            string realLink = null;
                             try
                             {
+                                realLink = "http://" + ReadAppIp() + "/" + HashId;
+                            }
+                            catch (Exception)
+                            {
+
+                                LogErrors("Error On Generate link of user registeration" + Environment.NewLine);
+                                ResetApp();
+                            }
+
+                            //Generate shortlink from realLink(generated link of user registeration) and split JSON data by ":"
+                            string[] shortedLink = null;
+                            string shortlinke = null;
+                            try
+                            {
+                                shortedLink = Shortlink("http://" + ReadShortlinkIp() + "/api/Page/" + realLink).Split(':');
+                                shortlinke = (shortedLink[1] + ":" + shortedLink[2]).Replace("\"", string.Empty).Replace("}", string.Empty);
+                            }
+                            catch (Exception)
+                            {
+                                LogErrors("Error On Generate shortlink" + Environment.NewLine);
+                                ResetApp();
+                            }
+
+                            //Send short link to current uesr
+                            string sentmsg = null;
+                            try
+                            {
+                                serialPort1.WriteLine("AT+CMGF=1");
+                                Thread.Sleep(100);
                                 serialPort1.WriteLine("AT+CSCS=\"HEX\"");
                                 Thread.Sleep(300);
                                 serialPort1.WriteLine("AT+CSMP=17,167,0,8");
                                 Thread.Sleep(300);
-                                //Use sender phone number for send short link sms
-                                serialPort1.WriteLine("AT+CMGS=\"" + MsgLine[2].Replace("\"", string.Empty) + "\"");
+                                serialPort1.WriteLine("AT+CMGS=\"" + phone + "\"");
                                 Thread.Sleep(300);
-                                //Generate link of user registeration and store it in string named realLink
-                                string realLink = "http://" + ReadAppIp() + "/" + HashId;
-                                //Generate shortlink from realLink(generated link of user registeration) and split JSON data by ":"
-                                shortedLink = Shortlink("http://" + ReadShortlinkIp() + "/api/Page/" + realLink).Split(':');
-                                //Generate message include short link for user to send as sms
-                                string Message = "لینک ثبت نام: " + "\r\n" + "http://" + (shortedLink[1] + ":" + shortedLink[2]).Replace("\"", string.Empty).Replace("}", string.Empty);
-                                //Change read language to HEX text (it is necessary for sending sms)
-                                serialPort1.Write(StringToHex(Message) + '\x001a');
+                                sentmsg = "لینک ثبت نام:\n" + "http://" + shortlinke + "\nدر صورت ایجاد هرگونه مشکل می‌توانید سوالات خود را بوسیله پیامک به همین شماره ارسال کنید ";
+                                serialPort1.Write(StringToHex(sentmsg) + '\x001a');
                                 Thread.Sleep(5000);
                             }
                             catch (Exception)
@@ -259,8 +246,8 @@ namespace SmsManagement
                             {
                                 Tbl_SmsSent tbl_SmsSent = new Tbl_SmsSent();
                                 tbl_SmsSent.Date = DateTime.Now;
-                                tbl_SmsSent.Phone = MsgLine[2].Replace("\"", string.Empty);
-                                tbl_SmsSent.Message = (shortedLink[1] + ":" + shortedLink[2]).Replace("\"", string.Empty).Replace("}", string.Empty);
+                                tbl_SmsSent.Phone = phone;
+                                tbl_SmsSent.Message = sentmsg;
                                 db.Tbl_SmsSents.InsertOnSubmit(tbl_SmsSent);
                                 db.SubmitChanges();
                             }
@@ -269,41 +256,10 @@ namespace SmsManagement
                                 LogErrors("Error On Add Sent Sms To Database" + Environment.NewLine);
                                 ResetApp();
                             }
-
-
-                            //Change read language to normal text
-                            try
-                            {
-                                serialPort1.WriteLine("AT+CSCS=\"IRA\"");
-                                Thread.Sleep(1000);
-                            }
-                            catch (Exception)
-                            {
-                                LogErrors("Error On Change Read Language To Normal Text" + Environment.NewLine);
-                                ResetApp();
-                            }
-
-
                         }
-
-                        //Delete all read messages (untouch unreads)
-                        try
-                        {
-                            serialPort1.WriteLine("AT" + System.Environment.NewLine);
-                            Thread.Sleep(1000);
-                            serialPort1.WriteLine("AT+CMGF=1\r" + System.Environment.NewLine);
-                            Thread.Sleep(1000);
-                            serialPort1.WriteLine("AT+CMGD=1,3" + System.Environment.NewLine);
-                            Thread.Sleep(1000);
-                        }
-                        catch (Exception)
-                        {
-                            LogErrors("Error On Delete All Read Messages" + Environment.NewLine);
-                            ResetApp();
-                        }
-
                     }
                 }
+
             }
             //If in each section of try error occurs, this catch section will execute
             catch (Exception e)
@@ -317,23 +273,6 @@ namespace SmsManagement
 
                 //Restart app
                 ResetApp();
-            }
-            //In final of executaton try or catch the current port will be closed
-            finally
-            {
-                //Close port after For Loop End
-                try
-                {
-                    if (serialPort1.IsOpen)
-                    {
-                        serialPort1.Close();
-                    }
-                }
-                catch (Exception)
-                {
-                    LogErrors("Error On Close Port After For Loop End" + Environment.NewLine);
-                    ResetApp();
-                }
             }
         }
 
@@ -364,11 +303,14 @@ namespace SmsManagement
         }
 
         //Convert string to HEX for sending message
+        #region StringToHex
         private static string StringToHex(string hexstring)
         {
             StringBuilder sb = new StringBuilder();
             foreach (char t in hexstring)
             {
+                if (Convert.ToInt32(t).ToString("X").Length == 1)
+                    sb.Append("000" + Convert.ToInt32(t).ToString("X"));
                 if (Convert.ToInt32(t).ToString("X").Length == 2)
                     sb.Append("00" + Convert.ToInt32(t).ToString("X"));
                 if (Convert.ToInt32(t).ToString("X").Length == 3)
@@ -376,6 +318,7 @@ namespace SmsManagement
             }
             return sb.ToString();
         }
+        #endregion
 
         //Convert link to Shortlink
         private static string Shortlink(string url)
