@@ -63,15 +63,15 @@ namespace SmsManagement
                 }
 
 
-                //Change read language to normal text
+                //Change read language to UCS2 text
                 try
                 {
-                    serialPort1.WriteLine("AT+CSCS=\"IRA\"");
+                    serialPort1.WriteLine("AT+CSCS=\"UCS2\"");
                     Thread.Sleep(1000);
                 }
                 catch (Exception)
                 {
-                    LogErrors("Error On Change read language to normal text" + Environment.NewLine);
+                    LogErrors("Error On Change read language to UCS2" + Environment.NewLine);
                     ResetApp();
                 }
 
@@ -113,14 +113,46 @@ namespace SmsManagement
                     if (receivedMessages[i].StartsWith("+CMGL"))
                     {
                         string[] message = receivedMessages[i].Split(',');
-                        string phone = message[2].Replace("\"", string.Empty);
-                        string msg = receivedMessages[i + 1];
-                        StringBuilder sb = new StringBuilder();
-                        for (int j = 0; j < msg.Length; j += 4)
+
+                        //Read phone number from raw UCS2 text and convert it to normal text
+                        string ph = null;
+                        string phone = null;
+                        try
                         {
-                            sb.AppendFormat("\\u{0:x4}", msg.Substring(j, 4));
+                            ph = message[2].Replace("\"", string.Empty);
+                            StringBuilder sb2 = new StringBuilder();
+                            for (int j = 0; j < ph.Length; j += 4)
+                            {
+                                sb2.AppendFormat("\\u{0:x4}", ph.Substring(j, 4));
+                            }
+                            phone = System.Text.RegularExpressions.Regex.Unescape(sb2.ToString()).Replace("\"", string.Empty);
                         }
-                        string Msg = System.Text.RegularExpressions.Regex.Unescape(sb.ToString()).Replace("\"", string.Empty);
+                        catch (Exception)
+                        {
+                            LogErrors("Error On Read phone number from raw UCS2 text and convert it to normal text" + Environment.NewLine);
+                            ResetApp();
+                        }
+
+
+                        //Read text message from raw UCS2 text and convert it to normal text
+                        string msg = null;
+                        string Msg = null;
+                        try
+                        {
+                            msg = receivedMessages[i + 1];
+                            StringBuilder sb = new StringBuilder();
+                            for (int j = 0; j < msg.Length; j += 4)
+                            {
+                                sb.AppendFormat("\\u{0:x4}", msg.Substring(j, 4));
+                            }
+                            Msg = System.Text.RegularExpressions.Regex.Unescape(sb.ToString()).Replace("\"", string.Empty);
+                        }
+                        catch (Exception)
+                        {
+                            LogErrors("Error On Read text message from raw UCS2 text and convert it to normal text" + Environment.NewLine);
+                            ResetApp();
+                        }
+
 
                         //Insert received message to "Tbl_SmsReceived" of database
                         try
@@ -141,7 +173,7 @@ namespace SmsManagement
                         }
 
                         //Check if received message body equals to 1 (persian or english) 
-                        if (msg.Equals("1") || msg.Equals("۱"))
+                        if (Msg.Equals("1") || Msg.Equals("۱"))
                         {
                             //Generating a hash key from sender phone number and current date and time for user registeration ID
                             string HashId = null;
@@ -260,6 +292,21 @@ namespace SmsManagement
                     }
                 }
 
+                //Delete all read messages (untouch unreads)
+                try
+                {
+                    serialPort1.WriteLine("AT" + System.Environment.NewLine);
+                    Thread.Sleep(1000);
+                    serialPort1.WriteLine("AT+CMGF=1\r" + System.Environment.NewLine);
+                    Thread.Sleep(1000);
+                    serialPort1.WriteLine("AT+CMGD=1,3" + System.Environment.NewLine);
+                    Thread.Sleep(1000);
+                }
+                catch (Exception)
+                {
+                    LogErrors("Error On Delete All Read Messages" + Environment.NewLine);
+                }
+
             }
             //If in each section of try error occurs, this catch section will execute
             catch (Exception e)
@@ -371,5 +418,6 @@ namespace SmsManagement
 
             Environment.Exit(0);
         }
+
     }
 }
