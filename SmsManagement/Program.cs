@@ -84,7 +84,7 @@ namespace SmsManagement
                     Thread.Sleep(1000);
                     serialPort1.WriteLine("AT+CMGF=1\r" + System.Environment.NewLine);
                     Thread.Sleep(1000);
-                    serialPort1.WriteLine("AT+CMGL=\"ALL\"" + System.Environment.NewLine); //For get only unread messages use => serialPort1.WriteLine("AT+CMGL=\"REC UNREAD\"" + System.Environment.NewLine);
+                    serialPort1.WriteLine("AT+CMGL=\"REC UNREAD\"" + System.Environment.NewLine); //For get only unread messages use => serialPort1.WriteLine("AT+CMGL=\"REC UNREAD\"" + System.Environment.NewLine);
                     Thread.Sleep(4000);
                     output = serialPort1.ReadExisting();
                 }
