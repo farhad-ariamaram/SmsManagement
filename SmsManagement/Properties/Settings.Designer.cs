@@ -26,7 +26,7 @@ namespace SmsManagement.Properties {
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.ConnectionString)]
-        [global::System.Configuration.DefaultSettingValueAttribute("Server=.;Database=EmployDB;User Id=sa;Password=1")]
+        [global::System.Configuration.DefaultSettingValueAttribute("Server=.;Database=EmployDB;User Id=sa;Password=S33@||")]
         public string EmployDBConnectionString {
             get {
                 return ((string)(this["EmployDBConnectionString"]));
